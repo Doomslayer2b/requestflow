@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }  
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    
+    const session = await auth()
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please log in' },
+        { status: 401 }
+      )
+    }
+
+    
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Forbidden - Only admins can approve or reject requests' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const { status } = body
-    
     
     const { id } = await params
 
@@ -20,9 +38,8 @@ export async function PATCH(
       )
     }
 
-   
     const existingRequest = await prisma.request.findUnique({
-      where: { id },  
+      where: { id },
     })
 
     if (!existingRequest) {
@@ -32,20 +49,37 @@ export async function PATCH(
       )
     }
 
-    const updatedRequest = await prisma.request.update({
-      where: { id },  
-      data: { status },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+
+    const oldStatus = existingRequest.status
+
+    
+    const [updatedRequest] = await prisma.$transaction([
+      
+      prisma.request.update({
+        where: { id },
+        data: { status },
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
-      },
-    })
+      }),
+      
+      prisma.auditLog.create({
+        data: {
+          action: status, 
+          userId: session.user.id,
+          requestId: id,
+          oldStatus,
+          newStatus: status,
+        },
+      }),
+    ])
 
     return NextResponse.json(updatedRequest)
   } catch (error) {

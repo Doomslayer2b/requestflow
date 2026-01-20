@@ -3,20 +3,27 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
+import { toast } from 'sonner' 
 
 export default function NewRequestPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsSubmitting(true)
-    setError('')
 
     const formData = new FormData(e.currentTarget)
     const title = formData.get('title') as string
     const description = formData.get('description') as string
+
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to create a request')  
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       const res = await fetch('/api/requests', {
@@ -25,7 +32,7 @@ export default function NewRequestPage() {
         body: JSON.stringify({
           title,
           description,
-          createdById: 'afb1b013-41e7-4e72-85dd-93f6b8a8daae', // Hardcoded for now
+          createdById: session.user.id,
         }),
       })
 
@@ -34,13 +41,21 @@ export default function NewRequestPage() {
         throw new Error(data.error || 'Failed to create request')
       }
 
-      // Success - redirect back to requests list
+      toast.success('Request created successfully!')  
       router.push('/requests')
-      router.refresh() // Force re-fetch the data
+      router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      toast.error(err instanceof Error ? err.message : 'Something went wrong') 
       setIsSubmitting(false)
     }
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    )
   }
 
   return (
@@ -60,12 +75,6 @@ export default function NewRequestPage() {
             Create New Request
           </h1>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
@@ -79,7 +88,8 @@ export default function NewRequestPage() {
                 id="title"
                 name="title"
                 required
-                className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 text-gray-900"
+                disabled={isSubmitting}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed placeholder-gray-400 text-black"
                 placeholder="e.g., New laptop needed"
               />
             </div>
@@ -95,8 +105,9 @@ export default function NewRequestPage() {
                 id="description"
                 name="description"
                 required
+                disabled={isSubmitting}
                 rows={5}
-                className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 text-gray-900"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed placeholder-gray-400 text-black"
                 placeholder="Provide details about your request..."
               />
             </div>
@@ -105,13 +116,13 @@ export default function NewRequestPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 {isSubmitting ? 'Creating...' : 'Create Request'}
               </button>
               <Link
                 href="/requests"
-                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 text-center font-medium"
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 text-center font-medium transition-colors"
               >
                 Cancel
               </Link>

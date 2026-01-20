@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 
-
-// GET /api/requests - Fetch all requests with creator info
 export async function GET() {
   try {
+    const session = await auth()
+    
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please log in' },
+        { status: 401 }
+      )
+    }
+
+    
+    const whereClause = session.user.role === 'ADMIN' 
+      ? {} 
+      : { createdById: session.user.id } 
+
     const requests = await prisma.request.findMany({
+      where: whereClause,
       include: {
         createdBy: {
           select: {
@@ -31,48 +46,57 @@ export async function GET() {
   }
 }
 
-// POST /api/requests - Create new request
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { title, description, createdById } = body
-
-    // Validation
-    if (!title || !description || !createdById) {
+    const session = await auth()
+    
+    if (!session?.user) {
       return NextResponse.json(
-        { error: 'Title, description, and createdById are required' },
+        { error: 'Unauthorized - Please log in' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { title, description } = body
+
+    if (!title || !description) {
+      return NextResponse.json(
+        { error: 'Title and description are required' },
         { status: 400 }
       )
     }
 
-    // Verify the user exists before creating request
-    const userExists = await prisma.user.findUnique({
-      where: { id: createdById },
-    })
+    const actualUserId = session.user.id
 
-    if (!userExists) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    // Create the request
-    const newRequest = await prisma.request.create({
-      data: {
-        title,
-        description,
-        createdById,
-      },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+    
+    const [newRequest] = await prisma.$transaction([
+      prisma.request.create({
+        data: {
+          title,
+          description,
+          createdById: actualUserId,
+        },
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
+      }),
+    ])
+
+    
+    await prisma.auditLog.create({
+      data: {
+        action: 'CREATED',
+        userId: actualUserId,
+        requestId: newRequest.id,
+        newStatus: 'PENDING',
       },
     })
 

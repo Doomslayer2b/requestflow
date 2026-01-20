@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'  
 
 type StatusButtonsProps = {
   requestId: string
@@ -26,17 +27,16 @@ export default function StatusButtons({ requestId, currentStatus }: StatusButton
         throw new Error('Failed to update status')
       }
 
-      // Refresh the page to show updated status
+      toast.success(`Request ${newStatus.toLowerCase()}!`)  
       router.refresh()
     } catch (error) {
       console.error('Error updating status:', error)
-      alert('Failed to update status. Please try again.')
+      toast.error('Failed to update status. Please try again.')  
     } finally {
       setIsUpdating(false)
     }
   }
 
-  // Don't show buttons if already approved or rejected
   if (currentStatus !== 'PENDING') {
     return null
   }
@@ -46,14 +46,14 @@ export default function StatusButtons({ requestId, currentStatus }: StatusButton
       <button
         onClick={() => updateStatus('APPROVED')}
         disabled={isUpdating}
-        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-colors"
       >
         {isUpdating ? 'Updating...' : 'Approve'}
       </button>
       <button
         onClick={() => updateStatus('REJECTED')}
         disabled={isUpdating}
-        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-colors"
       >
         {isUpdating ? 'Updating...' : 'Reject'}
       </button>

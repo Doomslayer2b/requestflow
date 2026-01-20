@@ -6,6 +6,19 @@ export type User = {
   createdAt: string
 }
 
+export type AuditLog = {
+  id: string
+  action: string
+  userId: string
+  requestId: string
+  oldStatus: string | null
+  newStatus: string | null
+  createdAt: string
+  user: {
+    name: string
+  }
+}
+
 export type Request = {
   id: string
   title: string
@@ -15,4 +28,5 @@ export type Request = {
   updatedAt: string
   createdById: string
   createdBy: User
+  auditLogs: AuditLog[]
 }
