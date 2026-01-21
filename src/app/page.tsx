@@ -5,13 +5,13 @@ import { redirect } from 'next/navigation'
 export default async function HomePage() {
   const session = await auth()
   
-  // If logged in, go straight to requests
+  
   if (session?.user) {
     redirect('/requests')
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full text-center">
         <h1 className="text-5xl font-bold text-gray-900 mb-4">
           RequestFlow

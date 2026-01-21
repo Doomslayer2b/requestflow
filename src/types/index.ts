@@ -3,7 +3,7 @@ export type User = {
   email: string
   name: string
   role: 'USER' | 'ADMIN'
-  createdAt: string
+  createdAt: Date
 }
 
 export type AuditLog = {
@@ -13,7 +13,7 @@ export type AuditLog = {
   requestId: string
   oldStatus: string | null
   newStatus: string | null
-  createdAt: string
+  createdAt: Date
   user: {
     name: string
   }
@@ -24,8 +24,8 @@ export type Request = {
   title: string
   description: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
-  createdAt: string
-  updatedAt: string
+  createdAt: Date
+  updatedAt: Date
   createdById: string
   createdBy: User
   auditLogs: AuditLog[]
