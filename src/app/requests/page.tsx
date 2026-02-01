@@ -64,7 +64,7 @@ export default async function RequestsPage() {
 <form action={async () => {
   'use server'
   const { signOut } = await import('@/lib/auth')
-  await signOut({redirectTo: '/'})
+  await signOut({redirectTo: '/login'})
 }}>
   <button 
     type="submit"
